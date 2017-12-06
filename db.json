@@ -11,10 +11,12 @@
     { "id": 9, "color": dd0000, "ttl": 20000},
     { "id": 10, "color": 00ff00, "ttl": 0}
   ],
-  "datos":{
-      "contador": 0,"ubicacion": "Centro Cultural Ripollet"
-	  }
-   
+  "datos": {
+      "contador": 0, "ubicacion": "Centro Cultural Ripollet"
+  },
+  "profile": {
+    "name": "yespi"
+  }
 }
    
  
