@@ -17,17 +17,25 @@ char servername[] = "navidad.ripolab.org"; // remote server we will connect to
 String result;
 
 String color;
-int deseo_id = 1;
-int deseo_idant = 0; //Nº de Deseo imposible en la BBDD
 int colorR = 0;
 int colorG = 0;
 int colorB = 0;
 int ultimogrupo = 0;
-int TotGrupos = 5; //Nº de grupos de LEDs a crear
-int aGleds[30];
-int aGcolorR[30];
-int aGcolorG[30];
-int aGcolorB[30];
+String deseo_id = "";
+String deseo_idant = "#"; //Nº de Deseo imposible en la BBDD
+
+int TotGrupos = 10; //Nº de grupos de LEDs a crear (Max. 60)
+
+// Si queremos asignar los Grupos de LEDs a mano, creamos el siguiente Array
+// y comentamos en "Crea_agrupos" la linea que modifica el valor
+//int aGleds[10]={5,23,56,75,100,130,150,180,220,270};
+int aGleds[100];  
+int aGcolorR[100];
+int aGcolorG[100];
+int aGcolorB[100];
+int contador_url = 0;
+int contador_estrellas = 100;
+long contador_cambios=0;
 
 
 WiFiClient client;
@@ -57,44 +65,54 @@ void setup() {
 }
 
 void loop() {
-  int contador_url = 0;
-  int contador_estrellas = 101;
-
-  if (contador_estrellas > 100)
-  {// crear_estrellas(); // Creamos los leds de ambientación de fondo.
-  } else {
-    contador_estrellas++;
-  }
 
   mostrar_agrupos();
+  
   //Cogemos el último LED, el contador determina cuanto esperamos para buscar nuevos deseos.
-
-  if (contador_url > 1) {
-    CogeLed(0);
-    contador_url = 0;
-    if (Check_anterior()) {
-      asigna_led();
-    }
+  if(contador_url<10) {
+    contador_url++;
   }
   else
-  { contador_url++;
+  {
+    CogeLed(0);
+    if (Check_anterior()) {
+      asigna_led();
+      contador_cambios=0;
+    }
+    contador_url = 0;
   }
-
+  
+  // Si llevan tiempo sin añadir Deseos, los añadimos nosotros
+  if (contador_cambios<100) {
+    contador_cambios++;
+   }
+  else
+  {  asigna_led();
+    contador_cambios=0;
+  }
+  
+  //Hacemos que el último grupo se vea mejor (Parpadea)
   mostrar_ultimogrupo();
-  apagar_grupos_azar();
-  delay(1000);
+
+  //apagar_grupos_azar();
+  if (contador_estrellas < 100)
+  {
+    contador_estrellas++;
+  } else {
+   // crear_estrellas(); // Creamos los leds de ambientación de fondo.
+    contador_estrellas = 0;
+  }
+  delay(500);
 }
 
 /////////////  ----------- Funciones
 
 void mostrar_ultimogrupo()
 {
-  int i;
-  for (i = 0; i < 10; i++)
-  {
-    apagar_grupo(ultimogrupo);
-    encender_grupo(ultimogrupo, aGcolorR[ultimogrupo], aGcolorG[ultimogrupo], aGcolorB[ultimogrupo]);
-  }
+    apagar_grupo(aGleds[ultimogrupo]);
+    delay(100);
+    encender_grupo(aGleds[ultimogrupo], aGcolorR[ultimogrupo], aGcolorG[ultimogrupo], aGcolorB[ultimogrupo]);
+  
 }
 
 
@@ -103,51 +121,52 @@ int Check_anterior()
   if (deseo_id != deseo_idant)
   {
     check_result = 1;
-    Serial.print("Nuevo Deseo asignado. Color: ");
-    Serial.print(colorR);
-    Serial.print(",");
-    Serial.print(colorG);
-    Serial.print(",");
-    Serial.println(colorB);
+    //Serial.print("Nuevo Deseo asignado.");
+    deseo_idant = deseo_id;
   }
   return check_result;
 }
 
-void asigna_led()
+int asigna_led()
 {
   int i = 0;
   int asignado = 0;
-  while ((!asignado) && (i < TotGrupos))
+
+  while ((asignado == 0) && (i < TotGrupos))
   {
-    if ((aGcolorR[i] == 0) && (aGcolorG[i] = 0) && (aGcolorB[i] = 0))
+    //Buscamos un grupo Vacío, si lo encontramos, completamos con valor.
+    if (((aGcolorR[i] == 0) && (aGcolorG[i] == 0)) && (aGcolorB[i] == 0))
     {
       aGcolorR[i] = colorR;
       aGcolorG[i] = colorG;
       aGcolorB[i] = colorB;
-      ultimogrupo = aGleds[i];
-      Serial.print("Ultimo grupo: ");
-      Serial.println(ultimogrupo);
+      ultimogrupo = i;
       asignado = 1;
-    }
-    else {
-      Serial.print(".");
     }
     i++;
   }
-  Serial.println(i);
-  Serial.print("Ultimo Grupo: ");
-  Serial.println(ultimogrupo);
+
 }
 
 void crear_agrupos()
 {
   int i;
+  // Creamos todos los grupos pero sólo activamos algunos
+
   for (i = 0; i < TotGrupos; i++)
   {
     aGleds[i] = (10 * i) + 5;
-    aGcolorR[i] = random(255);
-    aGcolorG[i] = random(255);
-    aGcolorB[i] = random(255);
+    if (random(2) == 1)
+    {
+      aGcolorR[i] = random(100);
+      aGcolorG[i] = random(100);
+      aGcolorB[i] = random(100);
+    } else
+    {
+      aGcolorR[i] = 0;
+      aGcolorG[i] = 0;
+      aGcolorB[i] = 0;
+    }
   }
 }
 
@@ -155,32 +174,32 @@ void encender_grupo(int led, int colorR, int colorG, int colorB)
 {
   int colorR5, colorG5, colorB5;
   int colorR3, colorG3, colorB3;
-  if ((colorR - 50) > 0) {
+  if (colorR > 50) {
     colorR5 = colorR - 50;
   } else {
     colorR5 = 0;
   }
-  if ((colorG - 50) > 0) {
+  if (colorG > 50) {
     colorG5 = colorG - 50;
   } else {
     colorG5 = 0;
   }
-  if ((colorB - 50) > 0) {
+  if (colorB > 50) {
     colorB5 = colorB - 50;
   } else {
     colorB5 = 0;
   }
-  if ((colorR - 25) > 0) {
+  if (colorR > 25) {
     colorR3 = colorR - 25;
   } else {
     colorR3 = 0;
   }
-  if ((colorG - 25) > 0) {
+  if (colorG > 25) {
     colorG3 = colorG - 25;
   } else {
     colorG3 = 0;
   }
-  if ((colorB - 25) > 0) {
+  if (colorB > 25) {
     colorB3 = colorB - 25;
   } else {
     colorB3 = 0;
@@ -200,33 +219,30 @@ void mostrar_agrupos()
   for (i = 0; i < TotGrupos; i++)
   {
     encender_grupo(aGleds[i], aGcolorR[i], aGcolorG[i], aGcolorB[i]);
+    atenuar_agrupo(i);
   }
-  atenuar_agrupos();
+
 }
 
-void atenuar_agrupos()
+void atenuar_agrupo(int igrp)
 {
-  int i;
   int atenuacion = 1;
-  for (i = 0; i < TotGrupos; i++)
-  {
-    if (aGcolorR[i] > atenuacion) {
-      aGcolorR[i] = aGcolorR[i] - atenuacion;
-    } else {
-      aGcolorR[i] = 0;
-    }
-    if (aGcolorG[i] > atenuacion) {
-      aGcolorG[i] = aGcolorR[i] - atenuacion;
-    } else {
-      aGcolorG[i] = 0;
-    }
-    if (aGcolorB[i] > atenuacion) {
-      aGcolorB[i] = aGcolorB[i] - atenuacion;
-    } else {
-      aGcolorB[i] = 0;
-    }
-
+  if (aGcolorR[igrp] > atenuacion) {
+    aGcolorR[igrp] = aGcolorR[igrp] - atenuacion;
+  } else {
+    aGcolorR[igrp] = 0;
   }
+  if (aGcolorG[igrp] > atenuacion) {
+    aGcolorG[igrp] = aGcolorG[igrp] - atenuacion;
+  } else {
+    aGcolorG[igrp] = 0;
+  }
+  if (aGcolorB[igrp] > atenuacion) {
+    aGcolorB[igrp] = aGcolorB[igrp] - atenuacion;
+  } else {
+    aGcolorB[igrp] = 0;
+  }
+
 }
 
 void apagar_grupos_azar()
@@ -313,13 +329,12 @@ void CogeLed(int numLed) //client function to send/receive GET request data.
   {
     Serial.println("parseObject() fallido");
   }
-
-  String deseo_id = root["id"];
+  String id = root["id"];
   String color = root["color"];
   String ttl = root["ttl"];
   String timeS = root["date_add"];
 
-
+  deseo_id = id;
   timeS = convertGMTTimeToLocal(timeS);
 
   int length = color.length();
@@ -333,11 +348,11 @@ void CogeLed(int numLed) //client function to send/receive GET request data.
 
   //Serial.print("Led: ");
   //Serial.println(id);
-  //Serial.print("Color: ");
-  //Serial.print(color); Serial.print(" -> ");
-  /*Serial.print(color.substring(0,2));Serial.print(",");Serial.print(colorR);Serial.print(" -- ");
-    Serial.print(color.substring(2,4));Serial.print(",");Serial.print(colorG);Serial.print(" -- ");
-    Serial.print(color.substring(4,7));Serial.print(",");Serial.println(colorB);
+  /*Serial.print("Color: ");
+    Serial.print(color); Serial.print(" -> ");
+    Serial.print(color.substring(0, 2)); Serial.print(","); Serial.print(colorR); Serial.print(" -- ");
+    Serial.print(color.substring(2, 4)); Serial.print(","); Serial.print(colorG); Serial.print(" -- ");
+    Serial.print(color.substring(4, 7)); Serial.print(","); Serial.println(colorB);
   */
   //Serial.print("TTL: ");
   //Serial.println(ttl);
