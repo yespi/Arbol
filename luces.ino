@@ -5,12 +5,14 @@
 
 // Globales para la tira de LEDS
 #define PIN            D3
-#define NUMLEDS        299
+#define NUMLEDS        360
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMLEDS, PIN, NEO_GRB + NEO_KHZ800);
 
 //Globales para el Wifi
-const char* ssid     = "TU_WIFI";
-const char* password = "TU_PASSWORD";
+//const char* ssid     = "Yespi_Wireless";
+//const char* password = "Yamt1965Ssfa@1017";
+const char* ssid     = "PMCRIPOLLET";
+const char* password = "Escorxador16@";
 
 //Globales para el JSON
 char servername[] = "navidad.ripolab.org"; // remote server we will connect to
@@ -24,7 +26,7 @@ int ultimogrupo = 0;
 String deseo_id = "";
 String deseo_idant = "#"; //Nº de Deseo imposible en la BBDD
 
-int TotGrupos = 10; //Nº de grupos de LEDs a crear (Max. 60)
+int TotGrupos = 62; //Nº de grupos de LEDs a crear (Max. 60)
 
 // Si queremos asignar los Grupos de LEDs a mano, creamos el siguiente Array
 // y comentamos en "Crea_agrupos" la linea que modifica el valor
@@ -36,7 +38,7 @@ int aGcolorB[100];
 int contador_url = 0;
 int contador_estrellas = 100;
 long contador_cambios=0;
-
+int cpaseante=0;
 
 WiFiClient client;
 
@@ -69,7 +71,7 @@ void loop() {
   mostrar_agrupos();
   
   //Cogemos el último LED, el contador determina cuanto esperamos para buscar nuevos deseos.
-  if(contador_url<10) {
+  if(contador_url<5) {
     contador_url++;
   }
   else
@@ -83,7 +85,7 @@ void loop() {
   }
   
   // Si llevan tiempo sin añadir Deseos, los añadimos nosotros
-  if (contador_cambios<100) {
+  if (contador_cambios<70) {
     contador_cambios++;
    }
   else
@@ -99,10 +101,11 @@ void loop() {
   {
     contador_estrellas++;
   } else {
-   // crear_estrellas(); // Creamos los leds de ambientación de fondo.
+    //crear_estrellas(); // Creamos los leds de ambientación de fondo.
     contador_estrellas = 0;
   }
-  delay(500);
+  paseante();
+  //delay(500);
 }
 
 /////////////  ----------- Funciones
@@ -110,7 +113,7 @@ void loop() {
 void mostrar_ultimogrupo()
 {
     apagar_grupo(aGleds[ultimogrupo]);
-    delay(100);
+    //delay(100);
     encender_grupo(aGleds[ultimogrupo], aGcolorR[ultimogrupo], aGcolorG[ultimogrupo], aGcolorB[ultimogrupo]);
   
 }
@@ -129,7 +132,7 @@ int Check_anterior()
 
 int asigna_led()
 {
-  int i = 0;
+  int i = random(TotGrupos);
   int asignado = 0;
 
   while ((asignado == 0) && (i < TotGrupos))
@@ -153,10 +156,10 @@ void crear_agrupos()
   int i;
   // Creamos todos los grupos pero sólo activamos algunos
 
-  for (i = 0; i < TotGrupos; i++)
+  for (i = 1; i < TotGrupos+1; i++)
   {
-    aGleds[i] = (10 * i) + 5;
-    if (random(2) == 1)
+    aGleds[i] = (6 * i);
+    if (random(2) == 1) //(1==1)//
     {
       aGcolorR[i] = random(100);
       aGcolorG[i] = random(100);
@@ -207,8 +210,9 @@ void encender_grupo(int led, int colorR, int colorG, int colorB)
   pixels.setPixelColor(led, pixels.Color(colorR5, colorG5, colorB5));
   pixels.setPixelColor(led + 1, pixels.Color(colorR3, colorG3, colorB3));
   pixels.setPixelColor(led + 2, pixels.Color(colorR, colorG, colorB));
-  pixels.setPixelColor(led + 3, pixels.Color(colorR3, colorG3, colorB3));
-  pixels.setPixelColor(led + 4, pixels.Color(colorR5, colorG5, colorB5));
+  pixels.setPixelColor(led + 3, pixels.Color(colorR, colorG, colorB));
+  pixels.setPixelColor(led + 4, pixels.Color(colorR3, colorG3, colorB3));
+  pixels.setPixelColor(led + 5, pixels.Color(colorR5, colorG5, colorB5));
   pixels.show(); // This sends the updated pixel color to the hardware.
 
 }
@@ -257,10 +261,24 @@ void apagar_grupos_azar()
 
 }
 
+void paseante()
+{
+  if (cpaseante<NUMLEDS)
+  {
+    pixels.setPixelColor(cpaseante, pixels.Color(80, 80, 230)); // Moderately bright green color.
+    cpaseante++;
+  }
+  else
+  {
+    cpaseante=0;
+  }
+  
+}
+
 void apagar_grupo(int led)
 {
   int i;
-  for (i = 0; i < 5; i++) {
+  for (i = 0; i < 6; i++) {
     pixels.setPixelColor(led + i, pixels.Color(0, 0, 0)); // Moderately bright green color.
   }
   pixels.show(); // This sends the updated pixel color to the hardware.
