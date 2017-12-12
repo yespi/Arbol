@@ -9,10 +9,8 @@
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMLEDS, PIN, NEO_GRB + NEO_KHZ800);
 
 //Globales para el Wifi
-//const char* ssid     = "Yespi_Wireless";
-//const char* password = "Yamt1965Ssfa@1017";
-const char* ssid     = "PMCRIPOLLET";
-const char* password = "Escorxador16@";
+const char* ssid     = "XXXXXX";
+const char* password = "XXXXXX";
 
 //Globales para el JSON
 char servername[] = "navidad.ripolab.org"; // remote server we will connect to
