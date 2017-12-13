@@ -1,9 +1,9 @@
-#Al iniciar por primera vez:
+**Al iniciar por primera vez:**
 
 1.	Generar deseos al azar, basado en un parámetro de máximo número azar.
 2.	Especificar para cada deseo al azar, un tiempo de vida al azar, para que no mueran todos por igual.
 
-#####Grupos de leds (Deseo):
+**Grupos de leds (Deseo)**
 
 1.	Todos los leds de un grupo (deseo) se apagan por igual.
 2.	Apagado mediante FADE.
@@ -14,7 +14,7 @@
     - Se busca un hueco/grupo libre al azar.
     - Se muestra el deseo (grupo de leds) parpadeando en la posición que le ha tocado con el color elegido.
 
-####General:
+**General**
 
 1.	El árbol tiene que tener un mínimo de deseos siempre activos. Parámetro.
     - Si no se reciben deseos hay que generar alguno de forma aleatoria: tiempo, color y posición.
