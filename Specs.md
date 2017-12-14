@@ -12,7 +12,7 @@
     - Todo el árbol parpadea con el color elegido del deseo.
     - Se recupera es estado de todos los deseos. El árbol vuelve al estado antes de recibir el deseo nuevo.
     - Se busca un hueco/grupo libre al azar.
-    - Se muestra el deseo (grupo de leds) parpadeando en la posición que le ha tocado con el color elegido.
+    - Se muestra el deseo (grupo de leds) parpadeando varias veces en la posición que le ha tocado con el color elegido. Luego queda fijo como el resto de deseos.
 
 **General**
 
