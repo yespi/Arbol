@@ -8,9 +8,6 @@
    y al enviarlo, la placa lo detectará y lo mostrará en la tira de Leds durante un tiempo determinado.
 */
 
-
-
-
 // Necesitamos este parametro para que funcione la NODEMCU (ESP-12E) (LOLIN) con la libreria FastLed
 #define FASTLED_ESP8266_RAW_PIN_ORDER
 #include "FastLED.h"
@@ -20,14 +17,14 @@
 
 /// Configuración del Arbol
 int TamGrupo = 5; //Nº de Leds que tiene cada grupo
-int TotGrupos = 10; // Se calcula con (NUM_LEDS / TamGrupo) //Nº de grupos de LEDs a crear (Max. 60)
-int MinGrupos = 2; //Mínimo de grupos que deben quedar siempre ON
+int TotGrupos = 12; // Se calcula con (NUM_LEDS / TamGrupo) //Nº de grupos de LEDs a crear (Max. 60)
+int MinGrupos = 3; //Mínimo de grupos que deben quedar siempre ON
 int TimeoutGrupo = 100; //Ciclos de vida de cada DESEO // Def.100
 int TiempoCheckDeseo = 5; //Frecuencia de consulta a la web. // Def. 5
 int TiempoCheckInactividad = 20; //Frecuencia de generacion de nuevos eventos // Def.20
-int atenuacion = 2; // Cantidad de atenuacion del Grupo por Ciclo // Def. 2
+int atenuacion = 1; // Cantidad de atenuacion del Grupo por Ciclo // Def. 2
 int ContEstrellas = 100; // Nº de estrellas a generar
-
+int fadeval = 5; // 1=muy lento - 20=muy rapido.
 
 // Configuración de la tira de LEDS y su conexión a placa
 #define PIN            D3
@@ -60,7 +57,6 @@ int contador_url = 0;
 long contador_cambios = 0;
 String color;
 int ultimogrupo = 0;
-int cpaseante = 0;
 String deseo_id = "";
 String deseo_idant = "#"; //Nº de Deseo imposible en la BBDD
 int colorR;
@@ -88,23 +84,26 @@ void setup() {
   }
   Serial.println("WiFi Conectado");
   Serial.println(WiFi.localIP());
-
   FastLED.addLeds<WS2811, PIN>(leds, NUM_LEDS);  // Definicion de la tira
   crear_agrupos(); //Definimos unos grupos iniciales al azar
 }
 
 void loop() {
 
-  mostrar_agrupos();
+  //mostrar_agrupos();
+  atenuar_agrupos();
   //Cogemos el último LED, el contador determina cuanto esperamos para buscar nuevos deseos.
   if (contador_url < TiempoCheckDeseo) {
     contador_url++;
   }
   else
-  {
-    CogeLed(0);
+  { Serial.println("Leyendo Web");
+    CogeLed(0);   // El valor 0 indica coger el último LED
     if (Check_anterior()) {
-      asigna_led(1);
+      Serial.println("Asignando Led nuevo");
+      asigna_led(1);  // El valor 1 indica DESEO, el valor 0 indica al azar
+      //Hacemos que el último grupo se vea mejor (Parpadea)
+      mostrar_ultimogrupo();
       contador_cambios = 0;
     }
     contador_url = 0;
@@ -115,91 +114,18 @@ void loop() {
     contador_cambios++;
   }
   else
-  { asigna_led(0);
+  { asigna_led(0); // El valor 1 indica DESEO, el valor 0 indica al azar
     contador_cambios = 0;
   }
 
-  //Hacemos que el último grupo se vea mejor (Parpadea)
-  mostrar_ultimogrupo();
+  if (checkGruposActivos() < MinGrupos) {
+    asigna_led(0);
+  }
 
-  //desactivar_grupos_azar();
-  /*    if (contador_estrellas < 100)
-      {
-       contador_estrellas++;
-      } else {
-       //crear_estrellas(); // Creamos los leds de ambientación de fondo.
-       contador_estrellas = 0;
-      }
-  */
-  //paseante();
-  //delay(500);
 }
 
 /////////////  ----------- Funciones
 
-void mostrar_ultimogrupo()
-{
-  for (int i = 0; i < 5; i++)
-  {
-    desactivar_grupo(ultimogrupo);
-    delay(50);
-    activar_grupo(ultimogrupo);
-  }
-}
-
-int Check_anterior()
-{ int check_result = 0;
-  if (deseo_id != deseo_idant)
-  {
-    check_result = 1;
-    //Serial.print("Nuevo Deseo asignado.");
-    deseo_idant = deseo_id;
-  }
-  return check_result;
-}
-
-int asigna_led(int tipoasignacion)
-{
-  // Tipoasignacion=0 <- Generar al azar
-  // Tipoasignacion=1 <- Generar con el color leído de la web
-
-  int i = random(TotGrupos);
-  int asignado = 0;
-
-
-  while ((asignado == 0) && (i < TotGrupos))
-  {
-    if (((aGcolorR[i] == 0) && (aGcolorG[i] == 0)) && (aGcolorB[i] == 0)) // Comprobamos si el LED está apagado.
-    {
-      if (tipoasignacion == 0) {
-        aGcolorR[i] = random8(255);
-        aGcolorG[i] = random8(255);
-        aGcolorB[i] = random8(255);
-      }
-      else
-      { aGcolorR[i] = colorR;
-        aGcolorG[i] = colorG;
-        aGcolorB[i] = colorB;
-        ultimogrupo = i;
-        efecto_nuevodeseo();
-      }
-      aGleds_Timeout[i] = TimeoutGrupo;
-      asignado = 1;
-    }
-    i++;
-  }
-
-}
-
-void efecto_nuevodeseo()
-{
-    // draw a generic, no-name rainbow
-  static uint8_t starthue = 0;
-  //fill_rainbow( leds , NUM_LEDS, --starthue, 20);
-  //FastLED.show();
-  //fill_rainbow( leds, NUM_LEDS, 0, 0);
-  
-}
 void crear_agrupos()
 {
   int i ;
@@ -215,43 +141,37 @@ void crear_agrupos()
     aGleds[i] = (TamGrupo * i);
     aGleds_Timeout[i] = random8();
     aGcolorR[i] = 0; aGcolorG[i] = 0; aGcolorB[i] = 0;
-    leds[i].r = 0; leds[i].g = 0; leds[i].b = 0;
     i++;
   }
+  setAll(0, 0, 0);
 
   //Vamos a crear como mínimo "MinGrupos" y como máximo TotGrupos-2
-  int numGrupos = random(TotGrupos - MinGrupos - 2) + MinGrupos;
+  int numGrupos = MinGrupos + random(TotGrupos - MinGrupos) ;
 
-  for (i = 0; i < numGrupos; i++)
+  Serial.print("Grupos a Crear: ");
+  Serial.println(numGrupos);
+
+  i = 0;
+  while (i < numGrupos)
   {
-    x = random8(TotGrupos - 1); //Generamos un grupo al azar
+    x = random(TotGrupos); //Generamos un grupo al azar
     x = x * TamGrupo; // Calculamos la posición Led donde va el grupo
-    aGleds[x] = x;
-    // Elegimos el color
-    aGcolorR[x] = random8();
-    aGcolorG[x] = random8();
-    aGcolorB[x] = random8();
-    for (int j = 0; j < TamGrupo; j++) // Rellenamos el color del grupo
+    if (aGcolorR[i] == 0) // Comprobamos si el led está apagado. Si lo está, buscamos otro
     {
-      leds[x + j].r = aGcolorR[x];
-      leds[x + j].g = aGcolorG[x];
-      leds[x + j].b = aGcolorB[x];
+      aGleds[i] = x;
+      // Elegimos el color
+      aGcolorR[i] = random8(100) + 1;
+      aGcolorG[i] = random8(100) + 1;
+      aGcolorB[i] = random8(100) + 1;
+      setGrupo(i, aGcolorR[i], aGcolorG[i], aGcolorB[i]);
+      showStrip();
+      i++;
     }
-
   }
+  Serial.print("Check grupos Activos: ");
+  Serial.println(checkGruposActivos());
 
-}
-
-void activar_grupo(int grupoled)
-{
-  int pos = grupoled * TamGrupo;
-  // Vamos a iluminar el grupogrupoled y guardamos los colores en el Array por si luego
-  // queremos recuperarlos.
-  for (int i = 0; i < TamGrupo; i++) {
-    leds[pos + i].r = aGcolorR[grupoled];
-    leds[pos + i].g = aGcolorG[grupoled];
-    leds[pos + i].b = aGcolorB[grupoled];
-  }
+  delay(5000);
 }
 
 void mostrar_agrupos()
@@ -259,19 +179,107 @@ void mostrar_agrupos()
   int i;
   for (i = 0; i < TotGrupos; i++)
   {
-    if (((aGcolorR[i] == 0) && (aGcolorG[i] == 0)) && (aGcolorB[i] == 0)) // Comprobamos si el LED está apagado.
+    if (aGcolorR[i] != 0)
     {
-    } else
-    {
-      activar_grupo(i);
+      setGrupo(i, aGcolorR[i], aGcolorG[i], aGcolorB[i]);
       atenuar_agrupo(i);
+
     }
 
   }
-  FastLED.show();
+  showStrip();
+}
 
+int checkGruposActivos()
+{
+  int val = 0;
+  for (int i = 0; i < TotGrupos; i++)
+  { if (aGcolorR[i] != 0) // Comprobamos si el LED está apagado.
+    {
+      val++;
+    }
+
+  }
+  return val;
+}
+
+void atenuar_agrupos()
+{
+  for (int i = 0; i < TotGrupos; i++)
+  {
+    atenuar_agrupo(i);
+
+  }
+  showStrip();
+}
+
+int Check_anterior()
+{ int check_result = 0;
+  if (deseo_id != deseo_idant)
+  {
+    check_result = 1;
+    deseo_idant = deseo_id;
+  }
+  return check_result;
+}
+
+void asigna_led(int tipoasignacion)
+{
+  // Tipoasignacion=0 <- Generar al azar
+  // Tipoasignacion=1 <- Generar con el color leído de la web
+
+  int i = random(TotGrupos);
+  int asignado = 0;
+
+
+  while ((asignado == 0) && (i < TotGrupos))
+  { if (aGcolorR[i] == 0) // Comprobamos si el LED está apagado.
+    {
+      if (tipoasignacion == 0) {
+        aGcolorR[i] = random8(100);
+        aGcolorG[i] = random8(100);
+        aGcolorB[i] = random8(100);
+      }
+      else
+      { Serial.println("Creando COLORES deseo");
+        aGcolorR[i] = colorR;
+        aGcolorG[i] = colorG;
+        aGcolorB[i] = colorB;
+        Serial.print("Asignado Deseo");
+        Serial.println(i);
+        Serial.print(colorR);
+        Serial.print(",");
+        Serial.print(colorG);
+        Serial.print(",");
+        Serial.println(colorB);
+
+        ultimogrupo = i;
+      }
+      setGrupo(i, colorR, colorG, colorB); // Encendemos el grupo en la tira de LEDS
+      aGleds_Timeout[i] = TimeoutGrupo;
+      asignado = 1;
+    }
+    else {
+      i++;
+      if ((i >= TotGrupos) && (asignado == 0)) {
+        i = 0;
+      }
+
+    }
+  }
+}
+
+void mostrar_ultimogrupo()
+{
+  for (int cont = 0; cont < 5; cont++) {
+    ///FadeInOut_Grupo(ultimogrupo, 210, 0x77, 210);
+    setGrupo(ultimogrupo, 0, 0, 0);
+    delay(10);
+    setGrupo(ultimogrupo, aGcolorR[ultimogrupo], aGcolorG[ultimogrupo], aGcolorB[ultimogrupo]);
+  }
 
 }
+
 
 
 void atenuar_agrupo(int igrp)
@@ -292,65 +300,79 @@ void atenuar_agrupo(int igrp)
     aGcolorB[igrp] = 0;
   }
 
-  int pos = igrp * TamGrupo;
-  for (int i = 0; i < TamGrupo; i++) { // Asignamos a todo el grupo el color atenuado
-    leds[pos + i].r = aGcolorR[igrp];
-    leds[pos + i].g = aGcolorG[igrp];
-    leds[pos + i].b = aGcolorB[igrp];
-  }
+  setGrupo(aGleds[igrp], aGcolorR[igrp], aGcolorG[igrp], aGcolorB[igrp]); // Asignamos a todo el grupo el color atenuado
 
 }
 
-void desactivar_grupos_azar()
-{
-  int igrp;
-  for (igrp = 0; igrp < TotGrupos; igrp++)
-  {
-    if (random(6) == 1) {
-      desactivar_grupo(igrp);
-    }
+///// Esta función al ejecutarse 3 o 4 veces produce un Crash, revisar
+void FadeInOut_Grupo(int igrp, byte red, byte green, byte blue) {
+  float r, g, b;
+
+  Serial.println("Fade");
+  for (int k = 0; k < 256; k = k + fadeval) {
+    r = (k / 256.0) * red;
+    g = (k / 256.0) * green;
+    b = (k / 256.0) * blue;
+    setGrupo(aGleds[igrp], r, g, b);
+    showStrip();
   }
 
-}
-
-void paseante()
-{
-  if (cpaseante < NUM_LEDS)
-  {
-    leds[cpaseante].r = 80;
-    leds[cpaseante].g = 80;
-    leds[cpaseante].b = 80;
-    cpaseante++;
-  }
-  else
-  {
-    cpaseante = 0;
-  }
-
-}
-
-void desactivar_grupo(int grupoled)
-{
-  int i;
-  int pos = grupoled * TamGrupo;
-  aGcolorR[grupoled] = 0;
-  aGcolorG[grupoled] = 0;
-  aGcolorB[grupoled] = 0;
-  for (i = 0; i < TamGrupo; i++) {
-    leds[pos + i].r = aGcolorR[grupoled]; //Apagamos el LED
-    leds[pos + i].g = aGcolorG[grupoled]; //Apagamos el LED
-    leds[pos + i].b = aGcolorB[grupoled]; //Apagamos el LED
+  for (int k = 256; k >= 0; k = k - fadeval) {
+    r = (k / 256.0) * red;
+    g = (k / 256.0) * green;
+    b = (k / 256.0) * blue;
+    setGrupo(aGleds[igrp], r, g, b);
+    showStrip();
   }
 }
 
-void crear_estrellas()
-{
-  int i;
-  for (i = 0; i < 100; i++) {
-    leds[i] = random8();
-  }
-  //pixels.show(); // This sends the updated pixel color to the hardware.
+
+void showStrip() {
+#ifdef ADAFRUIT_NEOPIXEL_H
+  // NeoPixel
+  strip.show();
+#endif
+#ifndef ADAFRUIT_NEOPIXEL_H
+  // FastLED
+  FastLED.show();
+#endif
 }
+
+void setPixel(int Pixel, byte red, byte green, byte blue) {
+#ifdef ADAFRUIT_NEOPIXEL_H
+  // NeoPixel
+  strip.setPixelColor(Pixel, strip.Color(red, green, blue));
+#endif
+#ifndef ADAFRUIT_NEOPIXEL_H
+  // FastLED
+  leds[Pixel].r = red;
+  leds[Pixel].g = green;
+  leds[Pixel].b = blue;
+#endif
+}
+
+void setGrupo(int igrp, byte red, byte green, byte blue) {
+  for (int i = aGleds[igrp]; i < (aGleds[igrp] + TamGrupo); i++ ) {
+    setPixel(i, red, green, blue);
+  }
+  showStrip();
+}
+
+void setAll(byte red, byte green, byte blue) {
+  for (int i = 0; i < NUM_LEDS; i++ ) {
+    setPixel(i, red, green, blue);
+  }
+  //showStrip();
+}
+
+
+
+
+
+
+
+
+
 
 
 ///////// ------------------------------------------------
@@ -444,13 +466,6 @@ unsigned long hexToDec(String hexString) {
   }
   return decValue;
 }
-
-
-
-
-
-
-
 
 
 
