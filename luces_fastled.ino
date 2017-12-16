@@ -16,9 +16,9 @@
 
 
 /// Configuración del Arbol
-int TamGrupo = 5; //Nº de Leds que tiene cada grupo
-int TotGrupos = 12; // Se calcula con (NUM_LEDS / TamGrupo) //Nº de grupos de LEDs a crear (Max. 60)
-int MinGrupos = 2; //Mínimo de grupos que deben quedar siempre ON
+int TamGrupo = 6; //Nº de Leds que tiene cada grupo
+int TotGrupos = 10; // Se calcula con (NUM_LEDS / TamGrupo) //Nº de grupos de LEDs a crear (Max. 60)
+int MinGrupos = 5; //Mínimo de grupos que deben quedar siempre ON
 int TimeoutGrupo = 100; //Ciclos de vida de cada DESEO // Def.100
 int TiempoCheckDeseo = 5; //Frecuencia de consulta a la web. // Def. 5
 int TiempoCheckInactividad = 200; //Frecuencia de generacion de nuevos eventos // Def.20
@@ -95,7 +95,8 @@ void setup() {
 void loop() {
   // En la primera ejecución, mostramos efectos al azar
   if (First_Time == 1) {
-    efecto_random(2);
+    efecto_todos();
+    //efecto_random(2);
     First_Time = 0;
   }
 
@@ -374,6 +375,24 @@ void efecto_random(int repetir)
     }
   }
 
+}
+
+void efecto_todos()
+{
+    randomSeed(255);
+    int r = random8();
+    int g = random8();
+    int b = random8();
+
+  CylonBounce(r, 0, 0, 4, 10, 50);
+  Sparkle(r, g, b, 0);
+  Twinkle(0, 0, b, 10, 100, false);
+  TwinkleRandom(20, 100, false);
+  RunningLights(r, g, b, 50);
+  colorWipe(0x00, r, 0x00, 50);
+  colorWipe(0x00, 0x00, r, 50);
+  SnowSparkle(0x10, 0x10, 0x10, 20, random(100, 1000));
+  
 }
 
 void colorWipe(byte red, byte green, byte blue, int SpeedDelay) {
