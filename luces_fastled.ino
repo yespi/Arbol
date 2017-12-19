@@ -58,8 +58,8 @@ CRGB leds[NUM_LEDS]; // Array para los Leds
 //Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMLEDS, PIN, NEO_GRB + NEO_KHZ800);
 
 //Globales para el Wifi
-const char* ssid     = "Yespi_Wireless";
-const char* password = "Yamt1965Ssfa@1017";
+const char* ssid     = "xxxxxxxxxxxx";
+const char* password = "xxxxx";
 
 
 
